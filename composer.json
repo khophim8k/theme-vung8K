@@ -1,0 +1,32 @@
+{
+    "name": "kho8k/theme-vung",
+    "description": "Kho8k's vung theme",
+    "type": "library",
+    "authors": [
+        {
+            "name": "kho8k",
+            "email": "kho8k@gmail.com"
+        }
+    ],
+    "require": {
+        "laravel/framework": "^6|^7|^8",
+        "ckfinder/ckfinder-laravel-package": "v3.5.2.1",
+          "khophim8k/kho8k-core": "^2.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Kho8k\\ThemeVung\\": "src/",
+            "Kho8k\\ThemeVung\\Database\\Factories\\": "database/factories/",
+            "Kho8k\\ThemeVung\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Kho8k\\ThemeVung\\ThemeVungServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable"
+}
