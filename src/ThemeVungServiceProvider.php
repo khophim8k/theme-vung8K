@@ -95,7 +95,7 @@ class ThemeVungServiceProvider extends ServiceProvider
                         'name' => 'additional_css',
                         'label' => 'Additional CSS',
                         'type' => 'code',
-                        'value' => "",
+                        'value' => "<style>img.logoiframe {width: 15%;position: absolute;top: 2%;left: 3%;background-color: #00000010;z-index: 100;}</style>",
                         'tab' => 'Custom CSS'
                     ],
                     [
@@ -116,7 +116,23 @@ class ThemeVungServiceProvider extends ServiceProvider
                         'name' => 'additional_body_js',
                         'label' => 'Body JS',
                         'type' => 'code',
-                        'value' => "",
+                        'value' => "<script>
+                                        document.addEventListener(\"DOMContentLoaded\", function() {
+                                            setTimeout(function() {
+                                                var playerDiv = document.getElementById(\"dooplay_player_response\");
+
+                                                if (playerDiv) {
+                                                    var imgElement = document.createElement(\"img\");
+                                                    imgElement.src = \"/storage/images/logovl.png\";  // Đường dẫn hình ảnh
+                                                    imgElement.alt = \"logo\";  // Thuộc tính alt của ảnh
+                                                    imgElement.className = \"logoiframe\";  // Thêm class 'logoiframe'
+                                                    
+
+                                                    playerDiv.appendChild(imgElement);
+                                                }
+                                            }, 500); // Chờ 1 giây sau khi script trước đã thực thi
+                                        });
+                                    </script>",
                         'tab' => 'Custom JS'
                     ],
                     [
