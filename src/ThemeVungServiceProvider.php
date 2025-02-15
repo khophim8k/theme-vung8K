@@ -95,7 +95,7 @@ class ThemeVungServiceProvider extends ServiceProvider
                         'name' => 'additional_css',
                         'label' => 'Additional CSS',
                         'type' => 'code',
-                        'value' => "<style>img.logoiframe {width: 15%;position: absolute;top: 2%;left: 3%;background-color: #00000010;z-index: 100;}</style>",
+                        'value' => "<style>img.logoiframe {width: 15%;position: absolute;top: 2%;left: 3%;background-color: #00000010;z-index: 100;} #player-holder{position: relative;}</style>",
                         'tab' => 'Custom CSS'
                     ],
                     [
@@ -116,23 +116,62 @@ class ThemeVungServiceProvider extends ServiceProvider
                         'name' => 'additional_body_js',
                         'label' => 'Body JS',
                         'type' => 'code',
-                        'value' => "<script>
-                                        document.addEventListener(\"DOMContentLoaded\", function() {
-                                            setTimeout(function() {
-                                                var playerDiv = document.getElementById(\"dooplay_player_response\");
+                        'value' => <<<HTML
+                        <script>
+                            document.addEventListener("DOMContentLoaded", function() {
+                                setTimeout(function() {
+                                    var playerDiv = document.getElementById("player-holder");
 
-                                                if (playerDiv) {
-                                                    var imgElement = document.createElement(\"img\");
-                                                    imgElement.src = \"/storage/images/logovl.png\";  // Đường dẫn hình ảnh
-                                                    imgElement.alt = \"logo\";  // Thuộc tính alt của ảnh
-                                                    imgElement.className = \"logoiframe\";  // Thêm class 'logoiframe'
-                                                    
+                                    if (playerDiv) {
+                                        var imgElement = document.createElement("img");
+                                        imgElement.src = "/storage/images/logovl.png";  // Đường dẫn hình ảnh
+                                        imgElement.alt = "logo";  // Thuộc tính alt của ảnh
+                                        imgElement.className = "logoiframe";  // Thêm class 'logoiframe'
+                                        playerDiv.appendChild(imgElement);
+                                    }
+                                }, 500); // Chờ 1 giây sau khi script trước đã thực thi
+                            });
+                        </script>
+                        <script>
+                        var catfishDiv = `<div class="custom-banner-video">
+                                                <div class="banner-ads">
+                                                </div>
+                                            </div>
+                                            <style>
+                                            .custom-banner-video {
+                                                text-align: center;
+                                                margin: 5px;
+                                            }
+                                            .custom-banner-video img {
+                                                max-width: 100%;
+                                            }
+                                            </style>
+                                            `;
+                                            var headerDiv = `
+                                            <div class="custom-banner-video">
+                                                <div class="banner-ads">
+                                                </div>
+                                            </div>
+                                            <style>
+                                            .custom-banner-video {
+                                                text-align: center;
+                                                margin: 5px;
+                                            }
+                                            .custom-banner-video img {
+                                                max-width: 100%;
+                                            }
+                                            </style>`;
 
-                                                    playerDiv.appendChild(imgElement);
-                                                }
-                                            }, 500); // Chờ 1 giây sau khi script trước đã thực thi
-                                        });
-                                    </script>",
+                        var targetBottomElement = document.querySelector("#player-wrapper");
+                        var targetTopElement = document.querySelector("#player-wrapper");
+                        if (targetBottomElement) {
+                            targetBottomElement.insertAdjacentHTML("afterend", catfishDiv);
+                        }
+                        if (targetTopElement) {
+                            targetTopElement.insertAdjacentHTML("afterbegin", headerDiv);
+                        }
+                        </script>
+                        HTML,
                         'tab' => 'Custom JS'
                     ],
                     [
