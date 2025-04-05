@@ -51,5 +51,6 @@ Route::group([
         ->where(['movie' => '.+', 'id' => '[0-9]+'])
         ->name('movies.show');
 
-
+    Route::get('ajax/bo-loc', [ThemeVungController::class, 'filter'])
+        ->name('ajax.filter');
 });

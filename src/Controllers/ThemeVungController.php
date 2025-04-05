@@ -12,52 +12,13 @@ use Kho8k\Core\Models\Episode;
 use Kho8k\Core\Models\Movie;
 use Kho8k\Core\Models\Region;
 use Kho8k\Core\Models\Tag;
-
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 
 class ThemeVungController
 {
-    public function index(Request $request)
+    public function index()
     {
-        if ($request['search'] || $request['filter']) {
-            $data = Movie::when(!empty($request['filter']['category']), function ($movie) {
-                $movie->whereHas('categories', function ($categories) {
-                    $categories->where('id', request('filter')['category']);
-                });
-            })->when(!empty($request['filter']['region']), function ($movie) {
-                $movie->whereHas('regions', function ($regions) {
-                    $regions->where('id', request('filter')['region']);
-                });
-            })->when(!empty($request['filter']['year']), function ($movie) {
-                $movie->where('publish_year', request('filter')['year']);
-            })->when(!empty($request['filter']['type']), function ($movie) {
-                $movie->where('type', request('filter')['type']);
-            })->when(!empty($request['search']), function ($query) {
-                $query->where(function ($query) {
-                    $query->where('name', 'like', '%' . request('search') . '%')
-                        ->orWhere('origin_name', 'like', '%' . request('search')  . '%');
-                })->orderBy('name', 'desc');
-            })->when(!empty($request['filter']['sort']), function ($movie) {
-                if (request('filter')['sort'] == 'create') {
-                    return $movie->orderBy('created_at', 'desc');
-                }
-                if (request('filter')['sort'] == 'update') {
-                    return $movie->orderBy('updated_at', 'desc');
-                }
-                if (request('filter')['sort'] == 'year') {
-                    return $movie->orderBy('publish_year', 'desc');
-                }
-                if (request('filter')['sort'] == 'view') {
-                    return $movie->orderBy('view_total', 'desc');
-                }
-            })->paginate(get_theme_option('per_page_limit'));
-
-            return view('themes::themevung.catalog', [
-                'data' => $data,
-                'search' => $request['search'],
-                'section_name' => "Tìm kiếm phim: $request->search"
-            ]);
-        }
         return view('themes::themevung.index', [
             'title' => Setting::get('site_homepage_title')
         ]);
@@ -79,7 +40,7 @@ class ThemeVungController
 
         $movie_related_cache_key = 'movie_related:' . $movie->id;
         $movie_related = Cache::get($movie_related_cache_key);
-        if(is_null($movie_related)) {
+        if (is_null($movie_related)) {
             $movie_related = $movie->categories[0]->movies()->inRandomOrder()->limit(get_theme_option('movie_related_limit', 10))->get();
             Cache::put($movie_related_cache_key, $movie_related, setting('site_cache_ttl', 5 * 60));
         }
@@ -114,7 +75,7 @@ class ThemeVungController
 
         $movie_related_cache_key = 'movie_related:' . $movie->id;
         $movie_related = Cache::get($movie_related_cache_key);
-        if(is_null($movie_related)) {
+        if (is_null($movie_related)) {
             $movie_related = $movie->categories[0]->movies()->inRandomOrder()->limit(get_theme_option('movie_related_limit', 10))->get();
             Cache::put($movie_related_cache_key, $movie_related, setting('site_cache_ttl', 5 * 60));
         }
@@ -232,7 +193,7 @@ class ThemeVungController
 
         $cache_key = 'catalog:' . $catalog->id . ':page:' . ($request['page'] ?: 1);
         $movies = Cache::get($cache_key);
-        if(is_null($movies)) {
+        if (is_null($movies)) {
             $value = explode('|', trim($catalog->value));
             [$relation_config, $field, $val, $sortKey, $alg] = array_merge($value, ['', 'is_copyright', 0, 'created_at', 'desc']);
             $relation_config = explode(',', $relation_config);
@@ -246,11 +207,12 @@ class ThemeVungController
                 })->when(!$relation_table, function ($query) use ($field, $val) {
                     $query->where(array_combine(explode(",", $field), explode(",", $val)));
                 })
-                ->orderBy($sortKey, $alg)
-                ->paginate($catalog->paginate);
+                    ->orderBy($sortKey, $alg)
+                    ->paginate($catalog->paginate);
 
                 Cache::put($cache_key, $movies, setting('site_cache_ttl', 5 * 60));
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+            }
         }
 
         return view('themes::themevung.catalog', [
@@ -285,5 +247,69 @@ class ThemeVungController
         ]);
 
         return response()->json(['status' => true, 'rating_star' => number_format($movie->rating_star, 1), 'rating_count' => $movie->rating_count]);
+    }
+
+    public function filter(Request $request)
+    {
+        if (!$request->has('search') && !$request->has('filter')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Không có dữ liệu để lọc.',
+            ]);
+        }
+
+        $data = Movie::when(!empty($request['filter']['category']), function ($movie) use ($request) {
+            $movie->whereHas('categories', function ($categories) use ($request) {
+                $categories->where('id', $request['filter']['category']);
+            });
+        })->when(!empty($request['filter']['region']), function ($movie) use ($request) {
+            $movie->whereHas('regions', function ($regions) use ($request) {
+                $regions->where('id', $request['filter']['region']);
+            });
+        })->when(!empty($request['filter']['year']), function ($movie) use ($request) {
+            $movie->where('publish_year', $request['filter']['year']);
+        })->when(!empty($request['filter']['type']), function ($movie) use ($request) {
+            $movie->where('type', $request['filter']['type']);
+        })->when(!empty($request['search']), function ($query) use ($request) {
+            $query->where(function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request['search'] . '%')
+                    ->orWhere('origin_name', 'like', '%' . $request['search'] . '%');
+            });
+        })->when(!empty($request['filter']['sort']), function ($movie) use ($request) {
+            switch ($request['filter']['sort']) {
+                case 'create':
+                    return $movie->orderBy('created_at', 'desc');
+                case 'update':
+                    return $movie->orderBy('updated_at', 'desc');
+                case 'year':
+                    return $movie->orderBy('publish_year', 'desc');
+                case 'view':
+                    return $movie->orderBy('view_total', 'desc');
+            }
+        })->paginate(get_theme_option('per_page_limit'));
+
+        if ($data->isEmpty()) {
+            return response()->json([
+                'status' => true,
+                'data' => [],
+                'message' => 'Không tìm thấy phim phù hợp.',
+                'html' => view('themes::themevung.inc.film_filter', [
+                    'data' => $data,
+                    'search' => $request['search'],
+                    'section_name' => "Tìm kiếm phim: $request->search"
+                ])->render()
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data'  => $data,
+            'message' => 'Lọc phim thành công',
+            'html' => view('themes::themevung.inc.film_filter', [
+                'data' => $data,
+                'search' => $request['search'],
+                'section_name' => "Tìm kiếm phim: $request->search"
+            ])->render()
+        ]);
     }
 }
